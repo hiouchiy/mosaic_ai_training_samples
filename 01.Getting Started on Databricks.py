@@ -40,7 +40,6 @@ mcli.get_cluster(clusters[0]) if len(clusters) > 0 else "No clusters found."
 
 # MAGIC %%writefile mosaic_gpt_test.yaml
 # MAGIC # 1B LLM training config
-# MAGIC
 # MAGIC name: my-test-run-mpt-1b-llm-foundry
 # MAGIC compute:
 # MAGIC   cluster: r8z11
