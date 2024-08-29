@@ -48,7 +48,9 @@ Before using the contents of this repository, ensure you have the following:
 This repository includes several sample scripts that illustrate how to use the Mosaic AI Python SDK. Each script is designed to be run within a Databricks Notebook and demonstrates different aspects of model training.
 
 - **Sample 1:** Getting Start
+  - This is a sample code to run a model training job which is implemented in LLM-Foundry.
 - **Sample 2:** Run GPT-Neox on the Mosaic AI Model Training
+  - Mosaic AI Model Training recommends using LLM-Foundry or Composer as the framework. However, it is generally possible to run code implemented with other libraries as well. This notebook is a sample for training a GPT-Neox-based model.
 
 ## Documentation
 
