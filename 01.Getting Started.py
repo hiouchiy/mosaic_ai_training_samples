@@ -1,5 +1,10 @@
 # Databricks notebook source
 # MAGIC %md
+# MAGIC This is a sample for submitting a model training job to Mosaic Model Training (MCT) from the Databricks Notebook.
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Install MCLI into this Notebook
 
 # COMMAND ----------
@@ -42,7 +47,7 @@ mcli.get_cluster(clusters[0]) if len(clusters) > 0 else "No clusters found."
 # MAGIC # 1B LLM training config
 # MAGIC name: my-test-run-mpt-1b-llm-foundry
 # MAGIC compute:
-# MAGIC   cluster: r8z11
+# MAGIC   cluster: FILL_IN_YOUR_VALUE
 # MAGIC   gpus: 16
 # MAGIC image: mosaicml/llm-foundry:2.3.0_cu121_flash2-latest
 # MAGIC integrations:
@@ -52,7 +57,7 @@ mcli.get_cluster(clusters[0]) if len(clusters) > 0 else "No clusters found."
 # MAGIC     pip_install: .[gpu-flash2,databricks]
 # MAGIC   - integration_type: mlflow
 # MAGIC     tracking_uri: databricks
-# MAGIC     experiment_name: /Users/hiroshi.ouchiyama@databricks.com/mct_experiment
+# MAGIC     experiment_name: FILL_IN_YOUR_VALUE
 # MAGIC command: >-
 # MAGIC   cd llm-foundry/scripts
 # MAGIC
@@ -63,7 +68,7 @@ mcli.get_cluster(clusters[0]) if len(clusters) > 0 else "No clusters found."
 # MAGIC   max_seq_len: 2048
 # MAGIC   global_seed: 17
 # MAGIC   data_local: ./my-copy-c4
-# MAGIC   data_remote: dbfs:/Volumes/shared/hiouchiymct/data
+# MAGIC   data_remote: FILL_IN_YOUR_VALUE
 # MAGIC
 # MAGIC   # Model
 # MAGIC   model:
@@ -171,13 +176,13 @@ mcli.get_cluster(clusters[0]) if len(clusters) > 0 else "No clusters found."
 # MAGIC         task: llm/v1/chat
 # MAGIC         metadata:
 # MAGIC           task: llm/v1/chat
-# MAGIC       mlflow_registered_model_name: mpt-1b-hiouchiy
+# MAGIC       mlflow_registered_model_name: FILL_IN_YOUR_VALUE
 # MAGIC
 # MAGIC   loggers:
 # MAGIC     mlflow:
 # MAGIC       tracking_uri: databricks
 # MAGIC       model_registry_uri: databricks-uc
-# MAGIC       model_registry_prefix: shared.hiouchiymct
+# MAGIC       model_registry_prefix: FILL_IN_YOUR_VALUE
 # MAGIC
 # MAGIC   # loggers:
 # MAGIC   #   wandb: {}
@@ -193,7 +198,7 @@ mcli.get_cluster(clusters[0]) if len(clusters) > 0 else "No clusters found."
 # MAGIC   # Load from local filesystem or remote object store
 # MAGIC   # load_path: ./gpt-1b/checkpoints/latest-rank{rank}.pt
 # MAGIC   # load_path: s3://my-bucket/my-folder/gpt-1b/checkpoints/latest-rank{rank}.pt
-# MAGIC   load_path: dbfs:/databricks/mlflow-tracking/1322175094395138/5c4432788793429bb9403ecad312d5f9/artifacts/mpt-1b-quickstart-llm-foundry-DA2Edb/checkpoints/ep0-ba3-rank0.pt
+# MAGIC   load_path: FILL_IN_YOUR_VALUE
 
 # COMMAND ----------
 
@@ -205,6 +210,13 @@ mcli.get_cluster(clusters[0]) if len(clusters) > 0 else "No clusters found."
 from mcli.api.runs import RunConfig, create_run
 
 run_config = RunConfig.from_file('mosaic_gpt_test.yaml')
+run_config.compute['cluster'] = 'FILL_IN'
+run_config.integrations[1]['experiment_name'] = 'FILL_IN'
+run_config.parameters['data_remote'] = 'FILL_IN'
+run_config.parameters['callbacks']['hf_checkpointer']['mlflow_registered_model_name'] = 'FILL_IN'
+run_config.parameters["loggers"]['mlflow']['model_registry_prefix'] = 'FILL_IN'
+run_config.load_path = 'FILL_IN'
+
 created_run = create_run(run_config)
 print(f'Started run: {created_run.run_uid} at {created_run.created_at}')
 print(f'Cluster: {created_run.cluster}')
@@ -231,10 +243,6 @@ for line in mcli.follow_run_logs(created_run):
 
 for line in mcli.get_run_logs(created_run):
     print(line)
-
-# COMMAND ----------
-
-
 
 # COMMAND ----------
 
