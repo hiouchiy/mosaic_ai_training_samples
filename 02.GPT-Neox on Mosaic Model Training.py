@@ -43,8 +43,119 @@ mcli.get_cluster(clusters[0]) if len(clusters) > 0 else "No clusters found."
 
 # COMMAND ----------
 
+# MAGIC %%writefile mosaic_gpt_neox_test.yaml
+# MAGIC name: neox-multi-node
+# MAGIC image: hiouchiy/gpt-neox:20240909_00 # Docker image provided by EleutherAI
+# MAGIC
+# MAGIC compute:
+# MAGIC   cluster: YOUR_CLUSTER_NAME
+# MAGIC   gpus: 8
+# MAGIC
+# MAGIC
+# MAGIC integrations:
+# MAGIC - integration_type: git_repo
+# MAGIC   git_repo: hiouchiy/gpt-neox
+# MAGIC   path: /workspace/gpt-neox
+# MAGIC   ssh_clone: false
+# MAGIC - integration_type: git_repo
+# MAGIC   git_repo: hiouchiy/DeeperSpeed
+# MAGIC   path: /workspace/DeeperSpeed
+# MAGIC   ssh_clone: false
+# MAGIC
+# MAGIC command: |
+# MAGIC   # Install the requirements for GPT-NeoX
+# MAGIC   cd /workspace/gpt-neox
+# MAGIC   pip install -r requirements/requirements.txt
+# MAGIC
+# MAGIC   # Install EleutherAI's fork of deepspeed
+# MAGIC   cd /workspace/DeeperSpeed
+# MAGIC   pip install .
+# MAGIC
+# MAGIC   # download and prepare data
+# MAGIC   # see https://github.com/EleutherAI/gpt-neox/blob/72c80715c366cc4ad623050d6bcb984fe6638814/README.md?plain=1#L122)
+# MAGIC   # for more details on the command
+# MAGIC   cd /workspace/gpt-neox
+# MAGIC   python prepare_data.py enwik8 -d ./data
+# MAGIC
+# MAGIC   if [ $NUM_NODES -ge 2 ]; then
+# MAGIC     # create a fake hostfile so that GPT-NeoX and DeepSpeed understand the cluster shape
+# MAGIC     # Note: this assumes that all nodes have the same number of devices
+# MAGIC     python -c '
+# MAGIC   import os; \
+# MAGIC   import torch; \
+# MAGIC   filehandle = open("/tmp/deepspeed_mvapich_hostfile", "w"); \
+# MAGIC   world_size = os.environ["WORLD_SIZE"]; \
+# MAGIC   device_count = torch.cuda.device_count(); \
+# MAGIC   num_nodes = int(world_size) // device_count; \
+# MAGIC   _ = [filehandle.write(f"node-{node} slots={device_count}\n") for node in range(num_nodes)]; \
+# MAGIC   filehandle.close(); \
+# MAGIC     '
+# MAGIC     # ls -la /tmp
+# MAGIC     cat /tmp/deepspeed_mvapich_hostfile
+# MAGIC
+# MAGIC     # create a GPT-NeoX config file for data paths, eval split, wandb setup, and launcher
+# MAGIC     cd /workspace/gpt-neox/configs
+# MAGIC     python -c '
+# MAGIC   import json; \
+# MAGIC   import os; \
+# MAGIC   filehandle = open("extra-configs.yml", "w"); \
+# MAGIC   values = { \
+# MAGIC     "data-path": "data/enwik8/enwik8_text_document", \
+# MAGIC     "use_shared_fs": False, \
+# MAGIC     "vocab-file": "data/gpt2-vocab.json", \
+# MAGIC     "merge-file": "data/gpt2-merges.txt", \
+# MAGIC     "eval-interval": 100, \
+# MAGIC     "eval-iters": 100, \
+# MAGIC     "split": "949,50,1", \
+# MAGIC     "use_wandb": False, \
+# MAGIC     "launcher": "mosaicml" \
+# MAGIC   }; \
+# MAGIC   json.dump(values, filehandle); \
+# MAGIC   filehandle.close(); \
+# MAGIC     '
+# MAGIC
+# MAGIC     # run training
+# MAGIC     # see https://github.com/EleutherAI/gpt-neox/blob/72c80715c366cc4ad623050d6bcb984fe6638814/README.md?plain=1#L216)
+# MAGIC     # for more details on the command
+# MAGIC     # see https://github.com/EleutherAI/gpt-neox/blob/72c80715c366cc4ad623050d6bcb984fe6638814/README.md?plain=1#L112
+# MAGIC     # for more details on configuration
+# MAGIC     cd /workspace/gpt-neox
+# MAGIC     ./deepy.py train.py configs/125M-json.yml configs/extra-configs.yml --hostfile /tmp/deepspeed_mvapich_hostfile
+# MAGIC   else
+# MAGIC     # create a GPT-NeoX config file for data paths, eval split, wandb setup, and launcher
+# MAGIC     cd /workspace/gpt-neox/configs
+# MAGIC     python -c '
+# MAGIC   import json; \
+# MAGIC   import os; \
+# MAGIC   filehandle = open("extra-configs.yml", "w"); \
+# MAGIC   values = { \
+# MAGIC     "data-path": "data/enwik8/enwik8_text_document", \
+# MAGIC     "vocab-file": "data/gpt2-vocab.json", \
+# MAGIC     "merge-file": "data/gpt2-merges.txt", \
+# MAGIC     "eval-interval": 100, \
+# MAGIC     "eval-iters": 100, \
+# MAGIC     "split": "949,50,1", \
+# MAGIC     "use_wandb": False \
+# MAGIC   }; \
+# MAGIC   json.dump(values, filehandle); \
+# MAGIC   filehandle.close(); \
+# MAGIC     '
+# MAGIC
+# MAGIC     # run training
+# MAGIC     # see https://github.com/EleutherAI/gpt-neox/blob/72c80715c366cc4ad623050d6bcb984fe6638814/README.md?plain=1#L216)
+# MAGIC     # for more details on the command
+# MAGIC     # see https://github.com/EleutherAI/gpt-neox/blob/72c80715c366cc4ad623050d6bcb984fe6638814/README.md?plain=1#L112
+# MAGIC     # for more details on configuration
+# MAGIC     cd /workspace/gpt-neox
+# MAGIC     ./deepy.py train.py configs/125M-json.yml configs/extra-configs.yml
+# MAGIC   fi
+
+# COMMAND ----------
+
 # MAGIC %md
-# MAGIC ### Single Node (8 GPUs) version
+# MAGIC ### (OLD)Single Node (8 GPUs) version
+# MAGIC
+# MAGIC This is deprecated.
 
 # COMMAND ----------
 
@@ -117,7 +228,9 @@ mcli.get_cluster(clusters[0]) if len(clusters) > 0 else "No clusters found."
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Multi Node (16 GPUs) version
+# MAGIC ### (OLD)Multi Node (16 GPUs) version
+# MAGIC
+# MAGIC This is deprecated.
 
 # COMMAND ----------
 
@@ -213,6 +326,7 @@ from mcli.api.runs import RunConfig, create_run
 
 run_config = RunConfig.from_file('mosaic_gpt_neox_test.yaml')
 run_config.compute['cluster'] = 'FILL_IN'
+run_config.compute['gpus'] = 8
 
 created_run = create_run(run_config)
 print(f'Started run: {created_run.run_uid} at {created_run.created_at}')
