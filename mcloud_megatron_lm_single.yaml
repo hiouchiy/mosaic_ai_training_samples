@@ -1,0 +1,108 @@
+name: MegatronLM-single-node
+image: nvcr.io/nvidia/pytorch:24.08-py3
+
+compute:
+  cluster: YOUR_CLUSTER_NAME
+  gpus: 8
+
+env_variables:
+  GLOO_SOCKET_IFNAME: eth0
+  TP_SOCKET_IFNAME: eth0
+
+
+integrations:
+- integration_type: git_repo
+  git_repo: NVIDIA/Megatron-LM
+  git_commit: 3bdae057c8a7d1bd2a39fcb2cdd64af448841cdc
+  path: /workspace/megatron
+  ssh_clone: false
+- integration_type: pip_packages
+  packages:
+    - setuptools==69.5.1
+
+command: |
+
+  # download and prepare data
+  mkdir /workspace/megatron/dataset
+  cd /workspace/megatron/dataset
+  wget https://sajpstorage.blob.core.windows.net/hiouchiy/gpt2-merges.txt
+  wget https://sajpstorage.blob.core.windows.net/hiouchiy/gpt2-vocab.json
+  wget https://sajpstorage.blob.core.windows.net/hiouchiy/my-corpus.json
+
+  python ../tools/preprocess_data.py \
+    --input my-corpus.json \
+    --output-prefix my-gpt2 \
+    --vocab-file gpt2-vocab.json \
+    --tokenizer-type GPT2BPETokenizer \
+    --merge-file gpt2-merges.txt \
+    --workers 8 \
+    --append-eod
+
+  export CUDA_DEVICE_MAX_CONNECTIONS=1
+
+  GPUS_PER_NODE=8
+  # Change for multinode config
+  MASTER_ADDR=localhost
+  MASTER_PORT=29500
+
+  VOCAB_FILE=/workspace/megatron/dataset/gpt2-vocab.json
+  MERGE_FILE=/workspace/megatron/dataset/gpt2-merges.txt
+  DATA_PATH=/workspace/megatron/dataset/my-gpt2_text_document
+
+  DISTRIBUTED_ARGS=(
+      --nproc_per_node $GPUS_PER_NODE 
+      --nnodes $NUM_NODES 
+      --node_rank $NODE_RANK
+      --master_addr $MASTER_ADDR 
+      --master_port $MASTER_PORT
+  )
+
+  GPT_MODEL_ARGS=(
+      --num-layers 12 
+      --hidden-size 512 
+      --num-attention-heads 8 
+      --seq-length 1024 
+      --max-position-embeddings 1024 
+  )
+
+  TRAINING_ARGS=(
+      --micro-batch-size 1 
+      --global-batch-size 8 
+      --train-iters 50 
+      --weight-decay 0.1 
+      --adam-beta1 0.9 
+      --adam-beta2 0.95 
+      --init-method-std 0.006 
+      --clip-grad 1.0 
+      --fp16
+      --lr 6.0e-5 
+      --lr-decay-style cosine 
+      --min-lr 6.0e-6
+      --lr-warmup-fraction .001 
+      --lr-decay-iters 430000 
+  )
+
+  MODEL_PARALLEL_ARGS=(
+    --tensor-model-parallel-size 1 
+    --pipeline-model-parallel-size 1 
+  )
+
+  DATA_ARGS=(
+      --data-path $DATA_PATH 
+      --vocab-file $VOCAB_FILE 
+      --merge-file $MERGE_FILE 
+      --split 949,50,1
+  )
+
+  EVAL_AND_LOGGING_ARGS=(
+      --eval-interval 1000 
+      --eval-iters 10
+  )
+
+  cd /workspace/megatron
+  torchrun ${DISTRIBUTED_ARGS[@]} pretrain_gpt.py \
+      ${GPT_MODEL_ARGS[@]} \
+      ${TRAINING_ARGS[@]} \
+      ${MODEL_PARALLEL_ARGS[@]} \
+      ${DATA_ARGS[@]} \
+      ${EVAL_AND_LOGGING_ARGS[@]}
