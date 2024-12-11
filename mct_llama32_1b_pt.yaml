@@ -112,6 +112,7 @@ parameters:
   # FSDP
   fsdp_config:
     sharding_strategy: FULL_SHARD
+    state_dict_type: sharded
     mixed_precision: PURE
     activation_checkpointing: true
     activation_checkpointing_reentrant: false
