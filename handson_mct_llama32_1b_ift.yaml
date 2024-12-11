@@ -1,7 +1,7 @@
 name: llama32-1b-pt
 
 compute:
-  cluster: r8z11
+  cluster: YOUR_CLUSTER_NAME  # Your cluster name
   gpus: 8  # Number of GPUs to use
 
 image: mosaicml/llm-foundry:2.4.0_cu124-latest
@@ -105,7 +105,7 @@ parameters:
 
   max_duration: 20ba
   eval_first: false
-  eval_interval: 5ba
+  eval_interval: 10ba
   eval_subset_num_batches: -1
   global_train_batch_size: 16
 
